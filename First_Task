@@ -1,0 +1,90 @@
+1. Create a Bucket
+
+Using gsutil
+
+gsutil mb -l <REGION> -c <STORAGE_CLASS> gs://<BUCKET_NAME>
+
+<REGION>: The region where the bucket is created (e.g., us-central1).
+<STORAGE_CLASS>: The storage class (e.g., STANDARD, NEARLINE, COLDLINE).
+
+Using gcloud
+
+gcloud storage buckets create <BUCKET_NAME> \
+    --location=<REGION> \
+    --storage-class=<STORAGE_CLASS>
+
+2. Upload Files
+
+Using gsutil
+
+gsutil cp <LOCAL_FILE_PATH> gs://<BUCKET_NAME>/<OBJECT_NAME>
+
+Using gcloud
+
+gcloud storage cp <LOCAL_FILE_PATH> gs://<BUCKET_NAME>/<OBJECT_NAME>
+
+3. Assign Roles & Permissions
+
+Using gsutil
+
+To assign a role (e.g., roles/storage.objectViewer) to a user:
+gsutil iam ch user:<USER_EMAIL>:roles/storage.objectViewer gs://<BUCKET_NAME>
+
+To assign a role to a group:
+gsutil iam ch group:<GROUP_EMAIL>:roles/storage.objectViewer gs://<BUCKET_NAME>
+
+Using gcloud
+
+Assign a role to a user:
+gcloud storage buckets add-iam-policy-binding <BUCKET_NAME> \
+    --member=user:<USER_EMAIL> \
+    --role=roles/storage.objectViewer
+
+Assign a role to a group:
+gcloud storage buckets add-iam-policy-binding <BUCKET_NAME> \
+    --member=group:<GROUP_EMAIL> \
+    --role=roles/storage.objectViewer
+
+4. Enable Versioning
+
+Using gsutil
+
+gsutil versioning set on gs://<BUCKET_NAME>
+
+Using gcloud
+
+gcloud storage buckets update <BUCKET_NAME> --versioning
+
+5. Set Lifecycle Policies
+
+Using gsutil
+
+Create a lifecycle configuration JSON file, 
+e.g., lifecycle.json:
+{
+  "rule": [
+    {
+      "action": {"type": "Delete"},
+      "condition": {"age": 30}
+    }
+  ]
+}
+Then apply it to the bucket:
+
+gsutil lifecycle set lifecycle.json gs://<BUCKET_NAME>
+
+Using gcloud
+
+gcloud storage buckets update <BUCKET_NAME> \
+    --lifecycle-file=lifecycle.json
+
+6. Set Retention Policy
+
+Using gsutil
+
+To set a 30-day retention policy:
+gsutil retention set 30d gs://<BUCKET_NAME>
+
+Using gcloud
+
+gcloud storage buckets update <BUCKET_NAME> --retention-period=30d
