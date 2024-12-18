@@ -1,0 +1,50 @@
+# Stage 1: Build the Java project
+FROM ubuntu:latest AS build-stage
+
+# Install required packages
+RUN apt-get update && apt-get install -y \
+    openjdk-11-jdk \
+    git \
+    maven \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone the Java project and build the WAR file
+RUN git clone https://github.com/SaravanaNani/jenkins-java-project.git /app
+WORKDIR /app
+RUN mvn clean package
+
+# Stage 2: Set up Tomcat and deploy the WAR file
+FROM ubuntu:latest
+
+# Install OpenJDK 17
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jdk \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables for Java
+ENV JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
+ENV PATH="$JAVA_HOME/bin:$PATH"
+
+# Download and extract Apache Tomcat
+ENV TOMCAT_VERSION=11.0.0
+RUN curl -fsSL https://dlcdn.apache.org/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz | tar -xz -C /usr/local
+RUN mv /usr/local/apache-tomcat-${TOMCAT_VERSION} /usr/local/tomcat
+
+# Configure Tomcat users for manager access
+RUN sed -i '/<\/tomcat-users>/i \
+<role rolename="manager-gui"/>\n\
+<role rolename="manager-script"/>\n\
+<user username="tomcat" password="tomcat" roles="manager-gui,manager-script"/>' /usr/local/tomcat/conf/tomcat-users.xml
+
+# Copy the WAR file from the build stage to Tomcat's webapps directory
+COPY --from=build-stage /app/target/*.war /usr/local/tomcat/webapps/
+
+# Expose ports for Tomcat
+EXPOSE 8080
+
+# Start Tomcat
+CMD ["/usr/local/tomcat/bin/catalina.sh", "run"]
