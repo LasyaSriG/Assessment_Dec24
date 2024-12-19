@@ -1,1 +1,148 @@
+Docker Commands
+
+1. Run a Docker Container
+
+Basic Run Command:
+
+docker run <image_name>
+
+Run a container with a name, detached mode, and port mapping:
+
+docker run --name <container_name> -d -p <host_port>:<container_port> <image_name>
+
+2. Stop and Delete a Running Container
+
+Stop a container:
+
+docker stop <container_name_or_id>
+
+Remove a stopped container:
+
+docker rm <container_name_or_id>
+
+Force remove a running container:
+
+docker rm -f <container_name_or_id>
+
+3. Build a New Docker Image
+
+Build an image using a Dockerfile in the current directory:
+
+docker build -t <image_name>:<tag> .
+
+Example:
+docker build -t myapp:1.0 .
+
+4. Delete a Docker Image
+
+Remove an image by name or ID:
+
+docker rmi <image_name_or_id>
+
+Force remove an image:
+
+docker rmi -f <image_name_or_id>
+
+5. Create a Volume
+
+Create a named Docker volume:
+
+docker volume create <volume_name>
+
+List all Docker volumes:
+
+docker volume ls
+
+6. Mount a Volume to a Container
+
+Run a container with a mounted volume:
+
+docker run -v <volume_name>:<container_path> <image_name>
+
+Example:
+docker run -d -v myvolume:/app/data myapp:1.0
+
+7. Push an Image to a Docker Registry
+
+Tag an image for the repository:
+
+docker tag <local_image_name>:<tag> <repository_url>/<image_name>:<tag>
+
+Example:
+docker tag myapp:1.0 username/myapp:1.0
+
+Log in to Docker Hub (or another registry):
+
+docker login
+
+Push the image to the repository:
+
+docker push <repository_url>/<image_name>:<tag>
+
+Example:
+docker push username/myapp:1.0
+
+8. Pull an Image from a Repository
+
+docker pull <image_name>:<tag>
+
+If no tag is specified, Docker pulls the latest tag by default.
+Example:
+docker pull nginx:latest
+
+To pull an image from a specific repository:
+docker pull <repository_url>/<image_name>:<tag>
+
+Example:
+docker pull myregistry.com/myapp:1.0
+
+Additional Useful Commands
+
+* List all containers (running and stopped):
+
+  docker ps -a
+
+* List running containers:
+
+  docker ps
+
+* List all images:
+
+  docker images
+
+* Remove all stopped containers:
+
+  docker container prune
+
+* Remove all unused images:
+
+  docker image prune -a
+
+* Check Logs for a Running or Stopped Container
+
+  View logs for a container:
+
+  docker logs <container_name_or_id>
+
+  View a specific number of recent log lines:
+
+  docker logs --tail <number_of_lines> <container_name_or_id>
+
+  Example:
+  docker logs --tail 50 my-container
+
+  Display timestamps in logs:
+
+  docker logs --timestamps <container_name_or_id>
+
+
+
+
+
+
+
+
+
+
+
 
