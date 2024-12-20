@@ -1,50 +1,50 @@
-# Stage 1: Build the Java project
-FROM ubuntu:latest AS build-stage
+FROM ubuntu AS build-stage
 
-# Install required packages
-RUN apt-get update && apt-get install -y \
+# Install required packages and clean up
+RUN apt-get update && \
+    apt-get install -y \
     openjdk-11-jdk \
     git \
-    maven \
     curl \
+    gzip \
+    tar \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone the Java project and build the WAR file
-RUN git clone https://github.com/SaravanaNani/jenkins-java-project.git /app
-WORKDIR /app
+# Install Apache Maven 3.x
+ENV MAVEN_VERSION=3.9.5
+ENV M2_HOME=/opt/apache-maven-${MAVEN_VERSION}
+ENV PATH="${M2_HOME}/bin:${PATH}"
+
+RUN mkdir -p ${M2_HOME} && \
+    curl -fsSL "https://downloads.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" | tar -xzC ${M2_HOME} --strip-components=1
+
+RUN git clone https://github.com/SaravanaNani/jenkins-java-project.git /maven
+
+WORKDIR /maven
+
 RUN mvn clean package
 
-# Stage 2: Set up Tomcat and deploy the WAR file
 FROM ubuntu:latest
 
-# Install OpenJDK 17
-RUN apt-get update && apt-get install -y \
-    openjdk-17-jdk \
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set environment variables for Java
-ENV JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
-ENV PATH="$JAVA_HOME/bin:$PATH"
-
 # Download and extract Apache Tomcat
-ENV TOMCAT_VERSION=11.0.0
-RUN curl -fsSL https://dlcdn.apache.org/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz | tar -xz -C /usr/local
-RUN mv /usr/local/apache-tomcat-${TOMCAT_VERSION} /usr/local/tomcat
+ADD https://dlcdn.apache.org/tomcat/tomcat-11/v11.0.2/bin/apache-tomcat-11.0.2.tar.gz .
+RUN tar -zxvf apache-tomcat-11.0.2.tar.gz && \
+    rm apache-tomcat-11.0.2.tar.gz
 
-# Configure Tomcat users for manager access
-RUN sed -i '/<\/tomcat-users>/i \
-<role rolename="manager-gui"/>\n\
-<role rolename="manager-script"/>\n\
-<user username="tomcat" password="tomcat" roles="manager-gui,manager-script"/>' /usr/local/tomcat/conf/tomcat-users.xml
+# Configure Tomcat users
+RUN sed -i '56 a\<role rolename="manager-gui"/>' apache-tomcat-11.0.2/conf/tomcat-users.xml && \
+    sed -i '57 a\<role rolename="manager-script"/>' apache-tomcat-11.0.2/conf/tomcat-users.xml && \
+    sed -i '58 a\<user username="tomcat" password="tomcat" roles="manager-gui, manager-script"/>' apache-tomcat-11.0.2/conf/tomcat-users.xml && \
+    sed -i '59 a\</tomcat-users>' apache-tomcat-11.0.2/conf/tomcat-users.xml && \
+    sed -i '56d' apache-tomcat-11.0.2/conf/tomcat-users.xml && \
+    sed -i '21d' apache-tomcat-11.0.2/webapps/manager/META-INF/context.xml && \
+    sed -i '22d' apache-tomcat-11.0.2/webapps/manager/META-INF/context.xml
 
-# Copy the WAR file from the build stage to Tomcat's webapps directory
-COPY --from=build-stage /app/target/*.war /usr/local/tomcat/webapps/
+COPY --from=build-stage /maven/target/*.war ./apache-tomcat-11.0.2/webapps
 
-# Expose ports for Tomcat
+RUN mv ./apache-tomcat-11.0.2 /usr/local/
+
 EXPOSE 8080
 
-# Start Tomcat
-CMD ["/usr/local/tomcat/bin/catalina.sh", "run"]
+CMD ["/usr/local/apache-tomcat-11.0.2/bin/catalina.sh run"]
