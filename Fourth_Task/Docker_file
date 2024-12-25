@@ -1,9 +1,10 @@
+# Build stage
 FROM ubuntu AS build-stage
 
 # Install required packages and clean up
 RUN apt-get update && \
     apt-get install -y \
-    openjdk-11-jdk \
+    openjdk-17-jdk \
     git \
     curl \
     gzip \
@@ -19,13 +20,23 @@ ENV PATH="${M2_HOME}/bin:${PATH}"
 RUN mkdir -p ${M2_HOME} && \
     curl -fsSL "https://downloads.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" | tar -xzC ${M2_HOME} --strip-components=1
 
+# Clone the repository and build the project
 RUN git clone https://github.com/SaravanaNani/jenkins-java-project.git /maven
-
 WORKDIR /maven
-
 RUN mvn clean package
 
-FROM ubuntu:latest
+# Runtime stage
+FROM ubuntu AS runtime-stage
+
+# Install OpenJDK and dependencies
+RUN apt-get update && \
+    apt-get install -y \
+    openjdk-17-jdk \
+    curl \
+    gzip \
+    tar \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Download and extract Apache Tomcat
 ADD https://dlcdn.apache.org/tomcat/tomcat-11/v11.0.2/bin/apache-tomcat-11.0.2.tar.gz .
@@ -41,10 +52,13 @@ RUN sed -i '56 a\<role rolename="manager-gui"/>' apache-tomcat-11.0.2/conf/tomca
     sed -i '21d' apache-tomcat-11.0.2/webapps/manager/META-INF/context.xml && \
     sed -i '22d' apache-tomcat-11.0.2/webapps/manager/META-INF/context.xml
 
+# Copy the WAR file from the build stage
 COPY --from=build-stage /maven/target/*.war ./apache-tomcat-11.0.2/webapps
 
+# Move Tomcat to /usr/local/
 RUN mv ./apache-tomcat-11.0.2 /usr/local/
 
 EXPOSE 8080
 
-CMD ["/usr/local/apache-tomcat-11.0.2/bin/catalina.sh run"]
+# CMD to run Tomcat
+CMD ["/usr/local/apache-tomcat-11.0.2/bin/catalina.sh", "run"]
