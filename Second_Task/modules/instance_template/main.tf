@@ -21,7 +21,8 @@ resource "google_compute_instance_template" "template" {
   }
 
   metadata_startup_script = var.startup_script
-  tags                    = ["http-server"]
+
+  tags = ["http-server"]
 }
 
 output "self_link" {
